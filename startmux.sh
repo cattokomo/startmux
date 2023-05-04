@@ -46,7 +46,7 @@ raw_tell() {
     local n=1
     for w in "${words[@]}"; do
         printf " $COLOR$w%s" "$RESET"
-        if (( n >= 8 && ${#w} > 3 )); then
+        if (( n >= 10 && ${#w} > 3 )); then
             n=1
             echo
         else n="$(( n + 1 ))"; fi
@@ -71,7 +71,7 @@ run_cmd() {
 
 end_p() {
     echo
-    read -rsp " Press ${LRED}any key$RESET to continue" -N1
+    read -rsp " Press ${LRED}any key$RESET to continue." -N1
     clear
 }
 
@@ -114,14 +114,20 @@ p1() {
 p2() {
     echo
 
-    tell "Let's switch our mirror to something more fast."
+    tell "The essential things to do after installing Termux is to run" \
+         "$LBLUE'termux-change-repo'$LYELLOW, $LBLUE'pkg update'$RESET and" \
+         "$LBLUE'pkg upgrade'.\n"
+
+    tell "But since you're running in a setup, we'll do it for you."
 
     for sec in {3..1..-1}; do
-        printf " ${LYELLOW}Running termux-change-repo in $BLUE%d$LYELLOW...$RESET\r" "$sec"
+        printf " ${LYELLOW}Running essential commands in $BLUE%d$LYELLOW...$RESET\r" "$sec"
         sleep 1
     done; echo
 
     run_cmd termux-change-repo
+    run_cmd pkg update
+    run_cmd pkg upgrade -y
 }
     
 
