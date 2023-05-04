@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
-# colorfg <true-color>
-colorfg() {
-    # shellcheck disable=SC2059 #:`"\x1b[38;5;%dm" "$1"` wouldn't trigger ansi code
-    printf "\x1b[38;5;$1m"
+# ansi_esc <ansi-escape>
+ansi_esc() {
+    # shellcheck disable=SC2059 #: i want ansi escape
+    printf "\x1b[$1"
 }
 
+# colorfg <true-color>
+colorfg() { ansi_esc "38;5;${1}m"; }
+
 # colorbg <true-color>
-colorbg() {
-    # shellcheck disable=SC2059 #:`"\x1b[48;5;%dm" "$1"` wouldn't trigger ansi code
-    printf "\x1b[48;5;$1m"
-}
+colorbg() { ansi_esc "48;5;${1}m"; }
 
 # preset colors
 BLACK="$(colorfg 0)" ; LBLACK="$(colorfg 8)"
@@ -21,23 +21,20 @@ BLUE="$(colorfg 4)" ; LBLUE="$(colorfg 12)"
 MAGENTA="$(colorfg 5)" ; LMAGENTA="$(colorfg 13)"
 CYAN="$(colorfg 6)" ; LCYAN="$(colorfg 14)"
 GREY="$(colorfg 7)" ; LGREY="$(colorfg 15)"
-RESET="$(printf "\x1b[0m")"
 
-hidecur() {
-    printf "\x1b[?25l"
-}
+# preset text prettifier
+BOLD="$(ansi_esc 1m)"
+ITALIC="$(ansi_esc 3m)"
+UNDERLINE="$(ansi_esc 4m)"
+RESET="$(ansi_esc 0m)"
 
-showcur() {
-    printf "\x1b[?25h"
-}
+hidecur() { ansi_esc "?25l"; }
 
-enable_altbuff() {
-    printf "\x1b[?1049h"
-}
+showcur() { ansi_esc "?25h"; }
 
-disable_altbuff() {
-    printf "\x1b[?1049l"
-}
+enable_altbuff() { ansi_esc "?1049h"; }
+
+disable_altbuff() { ansi_esc "?1049l"; }
 
 # raw_tell <msg...>
 raw_tell() {
@@ -46,7 +43,7 @@ raw_tell() {
     local n=1
     for w in "${words[@]}"; do
         printf " $COLOR$w%s" "$RESET"
-        if (( n >= 10 && ${#w} > 3 )); then
+        if (( n >= 12 )); then
             n=1
             echo
         else n="$(( n + 1 ))"; fi
@@ -63,7 +60,12 @@ run_cmd() {
 
     COLOR="$LBLUE" raw_tell "\$ $cmd $*\n"
     "$cmd" "$@" || {
-        COLOR="$RED" raw_tell "Command failed miserably, exit code $?."
+        last_status="$?"
+        echo
+        COLOR="$RED" raw_tell "Command failed miserably, exit code $last_status."
+        tell "Setup is failed, please either screenshot (must be readable)" \
+             "or copy whole text. After that open an issue by opening this link:\n $LBLUE$BOLD${UNDERLINE}https://github.com/UrNightmaree/startmux/issues/new
+             "
         end_p
         on_exit 1
     }
@@ -79,14 +81,13 @@ end_p() {
 on_exit() {
     showcur
     disable_altbuff
-    [[ -n "$1" ]] && exit "$1"
+    [[ -n "$1" ]] && exit "$1" || exit
 }
 
 # SIGINT handler
 sigint() {
     clear
-    on_exit
-    exit 130
+    on_exit 130
 }
 
 trap sigint SIGINT
@@ -101,10 +102,10 @@ p1() {
 
     for c in {9..15}; do
         # shellcheck disable=SC2059 #: no, i want ansi codes to work
-        printf -- "  <[ $(colorfg "$c")S T A R T M U X$RESET ]>\r"
+        printf -- "  <[ $BOLD$(colorfg "$c")S T A R T M U X$RESET ]>\r"
         sleep .07
         # shellcheck disable=SC2059 #: same as above
-        printf -- "  <[ $(colorfg "$(( c - 7 ))")S T A R T M U X$RESET ]>\r"
+        printf -- "  <[ $BOLD$(colorfg "$(( c - 7 ))")S T A R T M U X$RESET ]>\r"
         sleep .07
     done; echo $'\n'
 
